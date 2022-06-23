@@ -1,4 +1,0 @@
-/home/likecanyon/gzq_ur_test/build/CMakeFiles/rebuild_cache.dir
-/home/likecanyon/gzq_ur_test/build/CMakeFiles/edit_cache.dir
-/home/likecanyon/gzq_ur_test/build/CMakeFiles/Force_offset.dir
-/home/likecanyon/gzq_ur_test/build/CMakeFiles/FTsensors.dir
