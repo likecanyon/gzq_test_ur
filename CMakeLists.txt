@@ -8,4 +8,7 @@ add_executable(FTsensors FTsensors.cpp)
 target_link_libraries(FTsensors PUBLIC ur_rtde::rtde)
 
 add_executable(Force_offset Force_offset.cpp)
-target_link_libraries(Force_offset PUBLIC ur_rtde::rtde)
+target_link_libraries   (Force_offset PUBLIC ur_rtde::rtde)
+
+
+    
