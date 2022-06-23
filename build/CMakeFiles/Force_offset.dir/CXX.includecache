@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/likecanyon/gzq_ur_test/Force_offset.cpp
+ur_rtde/rtde_control_interface.h
+-
+ur_rtde/rtde_receive_interface.h
+-
+ur_rtde/rtde_io_interface.h
+-
+iostream
+-
+thread
+-
+chrono
+-
+
