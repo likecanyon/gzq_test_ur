@@ -3,7 +3,7 @@
 
 using namespace ur_rtde;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   RTDEControlInterface rtde_control("192.168.3.101");
   RTDEReceiveInterface rtde_receive("192.168.3.101");
@@ -13,6 +13,21 @@ int main(int argc, char* argv[])
   std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
             << " " << TCPForce[4] << " " << TCPForce[5] << std::endl;
   rtde_control.zeroFtSensor();
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  TCPForce = rtde_receive.getActualTCPForce();
+  std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
+            << " " << TCPForce[4] << " " << TCPForce[5] << std::endl;
+  int i = 0;
+  while (i < 10)
+  {
+    TCPForce = rtde_receive.getActualTCPForce();
+    std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
+              << " " << TCPForce[4] << " " << TCPForce[5] << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    i++;
+  }
+
+  TCPForce = rtde_receive.getActualTCPForce();
   std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
             << " " << TCPForce[4] << " " << TCPForce[5] << std::endl;
   return 0;
