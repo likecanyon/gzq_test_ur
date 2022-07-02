@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         offset_average[j] = offset_average[j] / 1000;
     }
     //打印平均值
-    
+
     for (int l = 0; l < 6; l++)
     {
         std::cout << offset_average[l] << " ";

@@ -11,3 +11,6 @@ target_link_libraries(Force_offset PUBLIC ur_rtde::rtde)
 
 add_executable(GetSomeData GetSomeData.cpp)
 target_link_libraries(GetSomeData PUBLIC ur_rtde::rtde)
+
+add_executable(GravityComepensation GravityComepensation.cpp)
+target_link_libraries(GravityComepensation PUBLIC ur_rtde::rtde)
