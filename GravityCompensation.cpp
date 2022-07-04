@@ -1,6 +1,7 @@
 /*
  *tool gravity comepensation in real time
  *Created by Gao Ziqi @SIA,CAS/UCAS on 2022/07.
+ *Reference:侯澈,赵忆文,张弼,李英立,赵新刚.基于最优激励位姿序列的机械臂负载估计[J].机器人,2020,42(04):503-512.
  */
 
 #include <ur_rtde/rtde_control_interface.h>
