@@ -1,3 +1,8 @@
+/*
+ *tool gravity comepensation in real time
+ *Created by Gao Ziqi @SIA,CAS/UCAS on 2022/07.
+ */
+
 #include <ur_rtde/rtde_control_interface.h>
 #include <ur_rtde/rtde_receive_interface.h>
 #include <ur_rtde/rtde_io_interface.h>
@@ -88,6 +93,7 @@ int main(int argc, char *argv[])
     ur_rtde::RTDEControlInterface rtde_control("192.168.3.101");
     ur_rtde::RTDEReceiveInterface rtde_receive("192.168.3.101");
 
+    /******************初始化变量****************************/
     //重力
     double m = 1.0;
     double g = 9.8;
@@ -122,6 +128,7 @@ int main(int argc, char *argv[])
     double alpha;
     Eigen::Matrix4d T_end_base; // base是参考系，机器人基坐标系
 
+    /*************重力补偿计算*************************/
     //读取机器人传感器坐标系相对于基坐标系的位姿
     TCPPoseVector = rtde_receive.getActualTCPPose();
     T_s_w = GetHomoTransMatrix(TCPPoseVector);
@@ -133,10 +140,13 @@ int main(int argc, char *argv[])
     R_m_t = R_s_w.inverse(); // R_m_t=R_w_s
     FS_Source = rtde_receive.getActualTCPForce();
     FGS = ForceTrans(G, R_m_t, Position);
+
+    //减去重力引起的传感器变化
     for (int i = 0; i < 6; i++)
     {
         FS_AfterCompensation[i] = FS_Source[i] - FGS[i];
     }
+    /************************计算完成***************************/
 
     return 0;
 }
