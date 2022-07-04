@@ -1,5 +1,5 @@
 /*
- *tool gravity comepensation in real time
+ *tool centroid of mass identification
  *Created by Gao Ziqi @SIA,CAS/UCAS on 2022/07.
  *Reference:侯澈,赵忆文,张弼,李英立,赵新刚.基于最优激励位姿序列的机械臂负载估计[J].机器人,2020,42(04):503-512.
  */
@@ -88,68 +88,22 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
     return F;
 }
 
-
-
-
 int main(int argc, char *argv[])
 {
     ur_rtde::RTDEControlInterface rtde_control("192.168.3.101");
     ur_rtde::RTDEReceiveInterface rtde_receive("192.168.3.101");
 
-    /******************初始化变量****************************/
-    //重力
-    double m = 1.0;
-    double g = 9.8;
-    std::vector<double> G{0.0, 0.0, -m * g}; //重力在m系下的表示
-    std::vector<double> FGS(6, 0.0); //重力传递到FT上的力
-    //质心位置
-    std::vector<double> Position;
+    std::vector<double> TCPPose = rtde_receive.getActualTCPPose();
+    std::vector<double> TCPForce = rtde_receive.getActualTCPForce();
 
-    //传感器读数
-    std::vector<double> FS_Source(6, 0.0);
-
-    //补偿后的力
-    std::vector<double> FS_AfterCompensation(6, 0.0);
-
-    // m是与原点在质心处，姿态与基座标系平行的参考系;t是工具系，原点在质心处，姿态与传感器坐标系平行；s是传感器坐标系;w是机器人基坐标系
-    // R_m_t t是参考系
-    Eigen::Matrix3d R_m_t;
-    Eigen::Matrix3d R_m_w;
-
-    // R_t_s s是参考系
-    Eigen::Matrix3d R_t_s;
-    Eigen::Matrix4d T_t_s;
-
-    // R_s_w 是参考系
-    Eigen::Matrix3d R_s_w;
-    // T_s_w w是参考系
-    Eigen::Matrix4d T_s_w;
-
-    // TCPPose
-    std::vector<double> TCPPoseVector(6, 0.0);
-    Eigen::Vector3d K;
-    double alpha;
-    Eigen::Matrix4d T_end_base; // base是参考系，机器人基坐标系
-
-    /***************************************************重力补偿计算*******************************************/
-    //读取机器人传感器坐标系相对于基坐标系的位姿
-    TCPPoseVector = rtde_receive.getActualTCPPose();
-    //T_s_w = GetHomoTransMatrix(TCPPoseVector);
-    R_s_w = GetRotationMatrix(TCPPoseVector);
-
-    //计算各个坐标系的相对姿态关系
-    R_m_w.setIdentity();     // m坐标系与机器人基坐标系姿态平行；
-    R_t_s.setIdentity();     // t坐标系与机器人传感器坐标系平行；
-    R_m_t = R_s_w.inverse(); // R_m_t=R_w_s
-    FS_Source = rtde_receive.getActualTCPForce();
-    FGS = ForceTrans(G, R_m_t, Position);
-
-    //减去重力引起的传感器变化
-    for (int i = 0; i < 6; i++)
-    {
-        FS_AfterCompensation[i] = FS_Source[i] - FGS[i];
-    }
-    /************************************************计算完成*****************************************************/
+    Eigen::Vector3d Torque;
+    Torque[0] = -TCPForce[3], Torque[1] = -TCPForce[4], Torque[2] = -TCPForce[5];
+    Eigen::Matrix3d P;
+    P << 0, -TCPForce[2], TCPForce[1],
+        TCPForce[2], 0, -TCPForce[0],
+        -TCPForce[1], TCPForce[0], 0;
+    Eigen::Vector3d Centroid;
+    Centroid = P.inverse() * Torque;
 
     return 0;
 }
