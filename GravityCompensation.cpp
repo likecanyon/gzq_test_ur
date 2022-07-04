@@ -51,9 +51,8 @@ Eigen::Matrix4d GetRotationMatrix(std::vector<double> I)
 /*
 将重力投射到传感器坐标系
  param1 G 重力在m系下的表达；
- R_m_t m系相对于t系的位姿；
- R_s_t
- P 机器人质心位置在s系下的表示。
+ param2 R_m_t m系相对于t系的位姿；
+ param3  P 机器人质心位置在s系下的表示。
 */
 std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std::vector<double> P)
 {
@@ -99,7 +98,7 @@ int main(int argc, char *argv[])
     double m = 1.0;
     double g = 9.8;
     std::vector<double> G{0.0, 0.0, -m * g}; //重力在m系下的表示
-    std::vector<double> FGS(6, 0.0);
+    std::vector<double> FGS(6, 0.0); //重力传递到FT上的力
     //质心位置
     std::vector<double> Position;
 
