@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
   TCPForce = rtde_receive.getActualTCPForce();
   std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
             << " " << TCPForce[4] << " " << TCPForce[5] << std::endl;
-  rtde_control.zeroFtSensor();
+ // rtde_control.zeroFtSensor();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   TCPForce = rtde_receive.getActualTCPForce();
   std::cout << "the TCPForce is: " << TCPForce[0] << " " << TCPForce[1] << " " << TCPForce[2] << " " << TCPForce[3]
