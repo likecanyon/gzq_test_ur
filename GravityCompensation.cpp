@@ -29,14 +29,14 @@ Eigen::Matrix4d GetHomoTransMatrix(std::vector<double> I)
     K.normalize();
     alpha = I[3] / K[0];
     R = Eigen::AngleAxisd(alpha, K);
-    T.block(0, 0, 3, 3) = R;
-    T.block(0, 3, 3, 1) = Translation;
+    T.block<3, 3>(0, 0) = R;
+    T.block<3, 1>(0, 3) = Translation;
 
     return T;
 }
 
 //通过x y z Rx Ry Rz 获得旋转变换矩阵R
-Eigen::Matrix4d GetRotationMatrix(std::vector<double> I)
+Eigen::Matrix3d GetRotationMatrix(std::vector<double> I)
 {
     Eigen::Vector3d K = {I[3], I[4], I[5]};
     double alpha;
@@ -75,10 +75,13 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
     Ft = R_m_t * G_w; //重力在t系中的表达
     F_before[0] = Ft[0], F_before[1] = Ft[1], F_before[2] = Ft[2];
     F_before[3] = 0, F_before[4] = 0, F_before[5] = 0;
-    TransForce.block(0, 0, 3, 3) = R_s_t;
-    TransForce.block(3, 3, 3, 3) = R_s_t;
-    TransForce.block(3, 0, 3, 3) = -SP * R_s_t;
-    F_After = TransForce.inverse() * F_before;
+    TransForce.block<3, 3>(0, 0) = R_s_t;
+    TransForce.block<3, 3>(3, 3) = R_s_t;
+    TransForce.block<3, 3>(3, 0) = -SP * R_s_t;
+    TransForce.block<3, 3>(0, 3) << 0, 0, 0,
+        0, 0, 0,
+        0, 0, 0;
+    // F_After = TransForce.inverse() * F_before;
 
     for (int i = 0; i < 6; i++)
     {
@@ -88,8 +91,37 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
     return F;
 }
 
+//将基坐标系的力转到传感器坐标系表示
+std::vector<double> FromWtoS(std::vector<double> F, Eigen::Matrix3d R_s_w)
+{
+    std::vector<double> F_S; //传感器坐标系下的广义力
 
+    Eigen::Vector3d ForceW; //基坐标系表示的力
+    Eigen::Vector3d MW;     //基坐标系表示的力矩
+    ForceW[0] = F[0], ForceW[1] = F[1], ForceW[2] = F[2];
+    MW[0] = F[3], MW[1] = F[4], MW[2] = F[5];
+    ForceW = R_s_w.inverse() * ForceW;
+    MW = R_s_w * MW;
+    F_S[0] = ForceW[0], F_S[1] = ForceW[1], F_S[2] = ForceW[2];
+    F_S[3] = MW[0], F_S[4] = MW[1], F_S[5] = MW[2];
 
+    return F_S;
+}
+
+//将传感器坐标系的力转换到基坐标系表示
+std::vector<double> FromStoW(std::vector<double> F, Eigen::Matrix3d R_s_w)
+{
+    std::vector<double> F_W; //基坐标系的广义力
+    Eigen::Vector3d ForceS;  //传感器坐标系的力
+    Eigen::Vector3d MS;      //传感器坐标系的力矩
+    ForceS[0] = F[0], ForceS[1] = F[1], ForceS[2] = F[2];
+    MS[0] = F[3], MS[1] = F[4], MS[2] = F[5];
+    ForceS = R_s_w * ForceS;
+    MS = R_s_w * MS;
+    F_W[0] = ForceS[0], F_W[1] = ForceS[1], F_W[2] = ForceS[2];
+    F_W[3] = MS[0], F_W[4] = MS[1], F_W[5] = MS[2];
+    return F_W;
+}
 
 int main(int argc, char *argv[])
 {
@@ -98,10 +130,10 @@ int main(int argc, char *argv[])
 
     /******************初始化变量****************************/
     //重力
-    double m = 1.0;
+    double m = 0.28761;
     double g = 9.8;
     std::vector<double> G{0.0, 0.0, -m * g}; //重力在m系下的表示
-    std::vector<double> FGS(6, 0.0); //重力传递到FT上的力
+    std::vector<double> FGS(6, 0.0);         //重力传递到FT上的力
     //质心位置
     std::vector<double> Position;
 
@@ -134,7 +166,7 @@ int main(int argc, char *argv[])
     /***************************************************重力补偿计算*******************************************/
     //读取机器人传感器坐标系相对于基坐标系的位姿
     TCPPoseVector = rtde_receive.getActualTCPPose();
-    //T_s_w = GetHomoTransMatrix(TCPPoseVector);
+    // T_s_w = GetHomoTransMatrix(TCPPoseVector);
     R_s_w = GetRotationMatrix(TCPPoseVector);
 
     //计算各个坐标系的相对姿态关系
@@ -142,6 +174,7 @@ int main(int argc, char *argv[])
     R_t_s.setIdentity();     // t坐标系与机器人传感器坐标系平行；
     R_m_t = R_s_w.inverse(); // R_m_t=R_w_s
     FS_Source = rtde_receive.getActualTCPForce();
+    FS_Source = FromWtoS(FS_Source, R_s_w); //传到传感器坐标系下
     FGS = ForceTrans(G, R_m_t, Position);
 
     //减去重力引起的传感器变化
@@ -149,6 +182,7 @@ int main(int argc, char *argv[])
     {
         FS_AfterCompensation[i] = FS_Source[i] - FGS[i];
     }
+    FS_AfterCompensation = FromStoW(FS_AfterCompensation, R_s_w); //转到基坐标系下
     /************************************************计算完成*****************************************************/
 
     return 0;
