@@ -59,10 +59,12 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
     std::vector<double> F(6, 0.0); //重力在传感器坐标系的表达
 
     Eigen::Vector3d Ft;
-    Eigen::VectorXd F_before;
-    Eigen::VectorXd F_After;
+    Eigen::VectorXd F_before(6);
+
+    Eigen::VectorXd F_After(6);
+
     Eigen::Vector3d G_w = {G[0], G[1], G[2]};
-    Eigen::MatrixXd TransForce;
+    Eigen::MatrixXd TransForce(6, 6);
     Eigen::Matrix3d R_s_t;
     Eigen::Matrix3d SP;
     SP << 0, -P[2], P[1],
@@ -77,11 +79,11 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
     F_before[3] = 0, F_before[4] = 0, F_before[5] = 0;
     TransForce.block<3, 3>(0, 0) = R_s_t;
     TransForce.block<3, 3>(3, 3) = R_s_t;
-    TransForce.block<3, 3>(3, 0) = -SP * R_s_t;
+    TransForce.block<3, 3>(3, 0) = -(SP * R_s_t);
     TransForce.block<3, 3>(0, 3) << 0, 0, 0,
         0, 0, 0,
         0, 0, 0;
-    // F_After = TransForce.inverse() * F_before;
+    F_After = TransForce.inverse() * F_before;
 
     for (int i = 0; i < 6; i++)
     {
@@ -94,14 +96,14 @@ std::vector<double> ForceTrans(std::vector<double> G, Eigen::Matrix3d R_m_t, std
 //将基坐标系的力转到传感器坐标系表示
 std::vector<double> FromWtoS(std::vector<double> F, Eigen::Matrix3d R_s_w)
 {
-    std::vector<double> F_S; //传感器坐标系下的广义力
+    std::vector<double> F_S(6, 0.0); //传感器坐标系下的广义力
 
     Eigen::Vector3d ForceW; //基坐标系表示的力
     Eigen::Vector3d MW;     //基坐标系表示的力矩
     ForceW[0] = F[0], ForceW[1] = F[1], ForceW[2] = F[2];
     MW[0] = F[3], MW[1] = F[4], MW[2] = F[5];
     ForceW = R_s_w.inverse() * ForceW;
-    MW = R_s_w * MW;
+    MW = R_s_w.inverse() * MW;
     F_S[0] = ForceW[0], F_S[1] = ForceW[1], F_S[2] = ForceW[2];
     F_S[3] = MW[0], F_S[4] = MW[1], F_S[5] = MW[2];
 
@@ -111,9 +113,9 @@ std::vector<double> FromWtoS(std::vector<double> F, Eigen::Matrix3d R_s_w)
 //将传感器坐标系的力转换到基坐标系表示
 std::vector<double> FromStoW(std::vector<double> F, Eigen::Matrix3d R_s_w)
 {
-    std::vector<double> F_W; //基坐标系的广义力
-    Eigen::Vector3d ForceS;  //传感器坐标系的力
-    Eigen::Vector3d MS;      //传感器坐标系的力矩
+    std::vector<double> F_W(6, 0.0); //基坐标系的广义力
+    Eigen::Vector3d ForceS;          //传感器坐标系的力
+    Eigen::Vector3d MS;              //传感器坐标系的力矩
     ForceS[0] = F[0], ForceS[1] = F[1], ForceS[2] = F[2];
     MS[0] = F[3], MS[1] = F[4], MS[2] = F[5];
     ForceS = R_s_w * ForceS;
@@ -127,15 +129,16 @@ int main(int argc, char *argv[])
 {
     ur_rtde::RTDEControlInterface rtde_control("192.168.3.101");
     ur_rtde::RTDEReceiveInterface rtde_receive("192.168.3.101");
-
+    std::vector<double> InitQ{0, -1.57/2, -1.57, -1.57, 1.57/2, 0};
+    rtde_control.moveJ(InitQ);
     /******************初始化变量****************************/
     //重力
-    double m = 0.28761;
+    double m = 1.170;
     double g = 9.8;
     std::vector<double> G{0.0, 0.0, -m * g}; //重力在m系下的表示
     std::vector<double> FGS(6, 0.0);         //重力传递到FT上的力
     //质心位置
-    std::vector<double> Position;
+    std::vector<double> Position{0, 0, 0.148};
 
     //传感器读数
     std::vector<double> FS_Source(6, 0.0);
@@ -174,6 +177,10 @@ int main(int argc, char *argv[])
     R_t_s.setIdentity();     // t坐标系与机器人传感器坐标系平行；
     R_m_t = R_s_w.inverse(); // R_m_t=R_w_s
     FS_Source = rtde_receive.getActualTCPForce();
+    std::cout << "Before Compensation: ";
+    for (int i = 0; i < 6; i++)
+        std::cout << FS_Source[i] << " ";
+    std::cout << std::endl;
     FS_Source = FromWtoS(FS_Source, R_s_w); //传到传感器坐标系下
     FGS = ForceTrans(G, R_m_t, Position);
 
@@ -183,7 +190,10 @@ int main(int argc, char *argv[])
         FS_AfterCompensation[i] = FS_Source[i] - FGS[i];
     }
     FS_AfterCompensation = FromStoW(FS_AfterCompensation, R_s_w); //转到基坐标系下
-    /************************************************计算完成*****************************************************/
-
+                                                                  /************************************************计算完成*****************************************************/
+    std::cout << "After Compensation: ";
+    for (int i = 0; i < 6; i++)
+        std::cout << FS_AfterCompensation[i] << " ";
+    std::cout << std::endl;
     return 0;
 }
