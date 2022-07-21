@@ -124,13 +124,11 @@ std::vector<double> FromStoW(std::vector<double> F, Eigen::Matrix3d R_s_w)
     F_W[3] = MS[0], F_W[4] = MS[1], F_W[5] = MS[2];
     return F_W;
 }
-
-int main(int argc, char *argv[])
+std::vector<double> GravityCompensation()
 {
-    ur_rtde::RTDEControlInterface rtde_control("192.168.3.101");
+   
     ur_rtde::RTDEReceiveInterface rtde_receive("192.168.3.101");
-    std::vector<double> InitQ{0, -1.57 / 2, -1.57, -1.57, 1.57 / 2, 0};
-    rtde_control.moveJ(InitQ);
+ 
     /******************初始化变量****************************/
     //重力
     double m = 1.170;
@@ -204,5 +202,5 @@ int main(int argc, char *argv[])
     for (int i = 0; i < 6; i++)
         std::cout << FS_AfterCompensation[i] << " ";
     std::cout << std::endl;
-    return 0;
+    return FS_AfterCompensation;
 }
